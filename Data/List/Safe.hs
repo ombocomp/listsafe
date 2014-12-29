@@ -1,10 +1,17 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 
--- |Operations on list. This module re-exports all safe functions of
---  'Data.List', but wraps all functions which require non-empty lists
---  into an instance of 'MonadThrow'.
---  Among others, this includes @[]@, @Maybe@, @Either@ and @IO@. See
---  'Control.Monad.Catch'.
+-- |Operations on lists. This module re-exports all safe functions of
+--  'Data.List', but wraps all partial functions which may fail. As such, this
+--  module can be imported instead of "Data.List".
+--
+--  Partial functions are wrapped into the 'MonadThrow'-monad from
+--  "Control.Monad.Catch" and as such, have appropriate failure cases for all
+--  instances. E.g.:
+--
+--  * 'Nothing' for 'Maybe',
+--  * the empty list for '[a]',
+--  * 'IOException' for 'IO',
+--  * lifted exceptions for monad transformers.
 module Data.List.Safe (
    module LSafe,
    -- *Safe versions of standard functions.
@@ -20,9 +27,10 @@ module Data.List.Safe (
    maximumBy,
    minimumBy,
    (!!),
-   -- * Generic wrapper function.
+   -- * Generic wrapper for partial functions.
    wrap,
    -- * Exceptions for empty lists and negative indices.
+   -- |These are the only two exceptions that will be thrown.
    EmptyListException(..),
    NegativeIndexException(..),
    )where
@@ -34,15 +42,17 @@ import qualified Data.List as L
 import Data.List as LSafe hiding (head, last, tail, init, foldl1, foldl1', foldr1, maximum, minimum, maximumBy, minimumBy, (!!))
 import Data.Typeable
 
+-- |Signals that the list was empty or contained too few elements (in the case
+--  or access by index).
 data EmptyListException = EmptyListException deriving (Show, Read, Eq, Ord, Typeable)
+-- |Singals that an element with a negative index was accessed.
 data NegativeIndexException = NegativeIndexException deriving (Show, Read, Eq, Ord, Typeable)
 
 instance Exception EmptyListException
 instance Exception NegativeIndexException
 
-
 -- |Takes a function that requires a non-empty list and wraps it in an instance
---  of 'MonadThrow'.
+--  of 'MonadThrow'. For empty lists, an 'EmptyListException' is thrown.
 wrap :: MonadThrow m => ([a] -> b) -> [a] -> m b
 wrap _ [] = throwM EmptyListException
 wrap f xs = return $ f xs
