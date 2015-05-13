@@ -118,8 +118,10 @@ minimumBy = wrap . L.minimumBy
 -- |List index (subscript) operator, starting from 0. Indices larger than
 --  @length xs - 1@ throw an 'EmptyListException', negative indices throw
 --  an 'NegativeIndexException'.
-(!!) :: (MonadThrow m, Integral n, Num n) => [a] -> n -> m a
-(!!) [] _ = throwM EmptyListException
-(!!) (x:xs) n | n == 0 = return x
-              | n < 0 = throwM NegativeIndexException
-              | otherwise = (!!) xs (n-1)
+(!!) :: (MonadThrow m, Integral n) => [a] -> n -> m a
+(!!) xs i = index xs (toInteger i)
+   where
+      index [] _ = throwM EmptyListException
+      index (x:xs) n | n == 0 = return x
+                     | n < 0 = throwM NegativeIndexException
+                     | otherwise = (!!) xs (n-1)
